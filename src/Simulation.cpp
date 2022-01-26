@@ -14,11 +14,15 @@ void simulation(py::module &m)
 {
     using namespace JoSIM;
 
+    // Create the Simulation class
     py::class_<Simulation>(m, "Simulation")
+        // Initialize the Simulation clas
         .def(py::init([](Input &input, Matrix &matrix) {
                  scoped_cout_null cout;
                  py::scoped_estream_redirect cerr;
+                 // Create a JoSIM::Simulation object
                  Simulation simulation(input, matrix);
+                 // Return the simulation object
                  return simulation;
              }),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>());

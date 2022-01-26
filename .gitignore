@@ -6,3 +6,6 @@ build
 compile_commands.json
 .mypy_cache
 .clangd
+.vs
+out
+/CMakeSettings.json

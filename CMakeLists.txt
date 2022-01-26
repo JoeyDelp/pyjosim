@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 project(pyjosim
-        VERSION 2.3
+        VERSION 2.6
                 DESCRIPTION
                 "Python bindings for JoSIM"
                 HOMEPAGE_URL
-                "https://github.com/pleroux0/pyjosim"
+                "https://github.com/JoeyDelp/pyjosim"
         LANGUAGES CXX)
 
 # Include cmake scripts
@@ -18,7 +18,6 @@ pybind11_add_module(pyjosim
                     src/AnalysisType.cpp
                     src/CliOptions.cpp
                     src/Input.cpp
-                    src/InputType.cpp
                     src/Matrix.cpp
                     src/Netlist.cpp
                     src/Output.cpp
@@ -40,3 +39,6 @@ target_include_directories(
          $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(pyjosim PRIVATE josim::josim)
+target_link_libraries(pyjosim PRIVATE suitesparse::klu)
+target_link_libraries(pyjosim PRIVATE superlu)
+target_link_libraries(pyjosim PRIVATE cblas)

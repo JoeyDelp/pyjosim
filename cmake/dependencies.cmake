@@ -3,15 +3,13 @@ include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
 CPMAddPackage(
   NAME pybind11
   GITHUB_REPOSITORY pybind/pybind11
-  VERSION 2.5.0
+  VERSION 2.9.0
 )
 
 CPMAddPackage(
   NAME josim
   GITHUB_REPOSITORY JoeyDelp/JoSIM
-  VERSION 2.4
-  GIT_TAG e8bfaaaa4ff35a060464c811fc4d41952ce4576d
+  GIT_TAG master
   OPTIONS
-    "USING_OPENMP OFF"
     "MAKING_STATIC_BUILD ON"
 )
