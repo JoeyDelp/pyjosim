@@ -1,8 +1,35 @@
+# JoSIM Python Interface
+## Prerequisites
+- A working C++ compiler with C++17 support
+- Python 3.6 or newer
+- Pip 10 or newer
+- CMake 3.13 or newer
 
-Troubleshooting:
+#### Hints
+- Microsoft Visual Studio Community is [free](https://visualstudio.microsoft.com/vs/community/)
+- Python for any system can easily be handled using [pyenv](https://github.com/pyenv/pyenv) or [pyenv-win](https://github.com/pyenv-win/pyenv-win)
+- CMake can be installed with Python package installer pip.
 
- * If it gives errors about undefined symbols, make sure that your compiler toolchain properly supports LTO
- * If installation fails with an ModuleNotFoundError check if the missing import is due to a missing package
+## Installation
+```bash
+$ git clone https://github.com/JoeyDelp/pyjosim.git
+$ pip install ./pyjosim
+```
 
-Does not support:
- * Multi configuration (like MSBUILD)
+## Verify
+```bash
+$ python -c "import pyjosim; print(pyjosim.__doc__)"
+JoSIM python interface
+```
+
+## Changelog
+### v2.6 - 27/01/2022
+- Updated readme documentation
+- Updated pybind11 interface
+- Updated code to work with latest JoSIM v2.6
+- Improved installation compatibility to work cross-platform
+
+## Acknowledgments
+- Original code by Dr. Paul le Roux
+- [CMake C Package Manager](https://github.com/cpm-cmake/CPM.cmake)
+- [pybind11](https://github.com/pybind/pybind11)

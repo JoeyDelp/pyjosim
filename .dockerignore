@@ -1,6 +1,0 @@
-dist
-build
-Dockerfile
-.clangd
-wheelhouse
-*.cpython-*.so

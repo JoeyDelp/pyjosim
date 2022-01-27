@@ -1,203 +1,134 @@
-""" Custom build.py to enable building with CMake from Poetry """
 import os
-import sys
 import re
 import subprocess
+import sys
 
-from distutils.version import LooseVersion
-from typing import Optional, List
-from setuptools import setup, Extension
+from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 
-if sys.version_info < (3, 6):
-    print("Python 3.6 or higher is required, please upgrade.")
-    sys.exit(-1)
-
-REQUIREMENTS = ["numpy"]
-BUILD_REQUIREMENTS = ["setuptools", "wheels", "cmake>=3.13", "ninja"]
-
-
-class CMakeBuildType:
-    """ CMake build class"""
-
-    def __init__(self, build_type: str):
-        self.build_type = build_type
-
-    build_type: str
-
-    def __post_init__(self):
-
-        if self.build_type.upper() not in [
-            "DEBUG",
-            "RELEASE",
-            "MINSIZEREL",
-            "RELWITHDEBINFO",
-        ]:
-            print("ERROR: invalid build type: '{}'".format(self.build_type))
-            sys.exit(-1)
-
-        self.build_type = self.build_type.upper()
+# Convert distutils Windows platform specifiers to CMake -A arguments
+PLAT_TO_CMAKE = {
+    "win32": "Win32",
+    "win-amd64": "x64",
+    "win-arm32": "ARM",
+    "win-arm64": "ARM64",
+}
 
 
-def get_cmake_executable():
-    cmake3_version = get_cmake_version("cmake3")
-    cmake_version = get_cmake_version("cmake")
-
-    if cmake3_version is None:
-        return "cmake"
-
-    if cmake_version is None:
-        return "cmake3"
-
-    # Use newer cmake
-    if cmake3_version > cmake_version:
-        return "cmake3"
-
-    return "cmake"
-
-
-def get_cmake_version(cmake_exe: str = "cmake"):
-    """ Returns the CMake version or None if CMake is not found """
-    try:
-        out = subprocess.check_output([cmake_exe, "--version"])
-    except OSError:
-        return None
-
-    version_string = re.search(r"version\s*([\d.]+)", out.decode()).group(1)
-    return LooseVersion(version_string)
-
-
+# A CMakeExtension needs a sourcedir instead of a file list.
+# The name must be the _single_ output extension from the CMake build.
+# If you need multiple extensions, see scikit-build.
 class CMakeExtension(Extension):
-    """ Setuptools CMake Extension """
-
-    _build_type: Optional[CMakeBuildType]
-    _minimum_cmake_version: LooseVersion
-    _cmake_version: LooseVersion
-    _source_directory: str
-    _cmake_exe: str
-
-    def __init__(
-        self,
-        name,
-        source_directory="",
-        build_type: CMakeBuildType = None,
-        minimum_cmake_version: str = "3.13",
-        cmake_exe: Optional[str] = None,
-    ):
-        # Set CMake executable
-        if cmake_exe is not None:
-            self._cmake_exe = cmake_exe
-        else:
-            self._cmake_exe = get_cmake_executable()
-        print("CMake executable {}".format(self._cmake_exe))
-
-        self._update_cmake_version(minimum_cmake_version)
-        self._set_source_directory(source_directory)
-
-        self._build_type = build_type
-
+    def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
-
-    def _set_source_directory(self, source_directory):
-        self._source_directory = os.path.abspath(source_directory)
-
-    def _update_cmake_version(self, minimum_cmake_version):
-        """ Checks that minimum cmake version and sets version info """
-        cmake_version = get_cmake_version(self._cmake_exe)
-
-        # Ensure that CMake is found
-        if cmake_version is None:
-            print("ERROR: CMake executable not found.")
-            sys.exit(-1)
-
-        # Ensure that the minimum cmake version
-        if cmake_version < minimum_cmake_version:
-            print("ERROR: Found CMake is too old")
-            print("  found={}".format(cmake_version))
-            print("  required={}".format(minimum_cmake_version))
-            sys.exit(-1)
-
-        self._minimum_cmake_version = LooseVersion(minimum_cmake_version)
-        self._cmake_version = cmake_version
-
-    def get_build_type(self):
-        """ Get the cmake build type """
-        return self._build_type
-
-    def get_source_directory(self):
-        """ Get the cmake source directory """
-        return self._source_directory
+        self.sourcedir = os.path.abspath(sourcedir)
 
 
 class CMakeBuild(build_ext):
-    """ CMake Extension Builder """
+    def build_extension(self, ext):
+        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
 
-    def run(self):
-        for ext in self.extensions:
-            self.build_extension(ext)
+        # required for auto-detection & inclusion of auxiliary "native" libs
+        if not extdir.endswith(os.path.sep):
+            extdir += os.path.sep
 
-    def build_extension(self, ext: CMakeExtension):
-        if not isinstance(ext, CMakeExtension):
-            print("ERROR: CMakeBuild cannot build non CMakeExtension")
-            sys.exit(-1)
+        debug = int(os.environ.get("DEBUG", 0)) if self.debug is None else self.debug
+        cfg = "Debug" if debug else "Release"
 
-        extension_directory = os.path.abspath(
-            os.path.dirname(self.get_ext_fullpath(ext.name))
-        )
+        # CMake lets you override the generator - we need to check this.
+        # Can be set with Conda-Build, for example.
+        cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
 
+        # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
+        # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
+        # from Python.
         cmake_args = [
-            ext.get_source_directory(),
-            self._get_build_type_flag(ext.get_build_type()),
-            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(extension_directory),
-            "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON",
-            f"-DPYTHON_EXECUTABLE={sys.executable}"
+            f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
+            f"-DPYTHON_EXECUTABLE={sys.executable}",
+            f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
         ]
+        build_args = []
+        # Adding CMake arguments set as environment variable
+        # (needed e.g. to build for ARM OSx on conda-forge)
+        if "CMAKE_ARGS" in os.environ:
+            cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
 
-        self._make_build_dir()
-        self._cmake_configure(ext._cmake_exe, cmake_args)
-        self._cmake_build(ext._cmake_exe)
+        # In this example, we pass in the version to C++. You might not need to.
+        cmake_args += [f"-DEXAMPLE_VERSION_INFO={self.distribution.get_version()}"]
 
-    def _get_build_type_flag(self, build_type: Optional[CMakeBuildType]):
-        """ Get CMake build type flag """
+        if self.compiler.compiler_type != "msvc":
+            # Using Ninja-build since it a) is available as a wheel and b)
+            # multithreads automatically. MSVC would require all variables be
+            # exported for Ninja to pick it up, which is a little tricky to do.
+            # Users can override the generator with CMAKE_GENERATOR in CMake
+            # 3.15+.
+            if not cmake_generator:
+                try:
+                    import ninja  # noqa: F401
 
-        if build_type is None:
-            build_type_str = "Debug" if self.debug else "Release"
-            build_type = CMakeBuildType(build_type_str)
+                    cmake_args += ["-GNinja"]
+                except ImportError:
+                    pass
 
-        return "-DCMAKE_BUILD_TYPE={}".format(build_type.build_type)
+        else:
 
-    def _make_build_dir(self):
-        """ Makes the build directory if it doesn't exist """
+            # Single config generators are handled "normally"
+            single_config = any(x in cmake_generator for x in {"NMake", "Ninja"})
+
+            # CMake allows an arch-in-generator style for backward compatibility
+            contains_arch = any(x in cmake_generator for x in {"ARM", "Win64"})
+
+            # Specify the arch if using MSVC generator, but only if it doesn't
+            # contain a backward-compatibility arch spec already in the
+            # generator name.
+            if not single_config and not contains_arch:
+                cmake_args += ["-A", PLAT_TO_CMAKE[self.plat_name]]
+
+            # Multi-config generators have a different way to specify configs
+            if not single_config:
+                cmake_args += [
+                    f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{cfg.upper()}={extdir}"
+                ]
+                build_args += ["--config", cfg]
+
+        if sys.platform.startswith("darwin"):
+            # Cross-compile support for macOS - respect ARCHFLAGS if set
+            archs = re.findall(r"-arch (\S+)", os.environ.get("ARCHFLAGS", ""))
+            if archs:
+                cmake_args += ["-DCMAKE_OSX_ARCHITECTURES={}".format(";".join(archs))]
+
+        # Set CMAKE_BUILD_PARALLEL_LEVEL to control the parallel build level
+        # across all generators.
+        if "CMAKE_BUILD_PARALLEL_LEVEL" not in os.environ:
+            # self.parallel is a Python 3 only way to set parallel jobs by hand
+            # using -j in the build_ext call, not supported by pip or PyPA-build.
+            if hasattr(self, "parallel") and self.parallel:
+                # CMake 3.12+ only.
+                build_args += [f"-j{self.parallel}"]
+
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
-    def _cmake_configure(self, cmake_exe: str, cmake_args: List[str]):
-        """ Configures the project """
-        subprocess.check_call([cmake_exe] + cmake_args, cwd=self.build_temp)
-
-    def _cmake_build(self, cmake_exe: str, build_args: List[str] = None):
-        """ Build project """
-
-        if build_args is None:
-            build_args = []
-
         subprocess.check_call(
-            [cmake_exe, "--build", "."] + build_args, cwd=self.build_temp
+            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp
         )
-
-    def _install(self):
-        pass
-
+        subprocess.check_call(
+            ["cmake", "--build", "."] + build_args, cwd=self.build_temp
+        )
 
 setup(
     # Meta data
     name="pyjosim",
-    version="2.3",
-    author="Paul le Roux",
-    author_email="pleroux0@outlook.com",
+    version="2.6",
+    author="Johannes Delport",
+    author_email="joeydelp@gmail.com",
     description="Python bindings for JoSIM",
+    url="https://github.com/JoeyDelp/pyjosim",
+    license="Apache",
     # Package data
-    ext_modules=[CMakeExtension("pyjosim", minimum_cmake_version="3.13")],
-    cmdclass=dict(build_ext=CMakeBuild),
+    ext_modules=[CMakeExtension("cmake_example")],
+    cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
+    extras_require={"test": ["pytest>=6.0"]},
+    python_requires=">=3.6",
 )
