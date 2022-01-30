@@ -14,7 +14,7 @@ void input(py::module &m)
     // Create Input class
     py::class_<Input>(m, "Input")
         // Initialization of the Input object
-        .def(py::init<CliOptions>())
+        .def(py::init<AnalysisType,int,bool,bool>())
         // Expose the netlist object
         .def_readwrite("netlist", &Input::netlist)
         // Expose the parameters object
@@ -58,7 +58,7 @@ void input(py::module &m)
         // Create a add_plot function for use internally
         .def("add_plot", [](Input &input, const std::string &str) {
             tokens_t t = Misc::tokenize(str);
-            t.insert(t.begin(), ".PRINT ");
+            t.insert(t.begin(), "PRINT");
             input.controls.emplace_back(t);
         });
 }

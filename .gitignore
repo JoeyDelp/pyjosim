@@ -9,3 +9,4 @@ compile_commands.json
 .vs
 out
 /CMakeSettings.json
+reinstall.ps1

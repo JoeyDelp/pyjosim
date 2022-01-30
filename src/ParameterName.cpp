@@ -1,6 +1,7 @@
 #include "JoSIM/ParameterName.hpp"
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 namespace py = pybind11;
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::string>);
@@ -14,7 +15,7 @@ void parameter_name(py::module &m)
     // Create a ParameterName class
     py::class_<ParameterName>(m, "ParameterName")
         // Initialize the ParameterName class
-        .def(py::init<std::string, std::string>())
+        .def(py::init<std::string, std::optional<std::string>>())
         // Expose the name member
         .def("name", &ParameterName::name)
         // Expose the subcircuit member
