@@ -2,7 +2,6 @@
 
 #include <pybind11/iostream.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 namespace py = pybind11;
 
 namespace pyjosim {
@@ -40,8 +39,6 @@ void cli_options(py::module &m)
         .def_readonly("analysis_type", &CliOptions::analysis_type)
         // Expose the public member verbose
         .def_readonly("verbose", &CliOptions::verbose)
-        // Expose the public member SLU
-        .def_readonly("slu", &CliOptions::SLU)
         // Expose the public member minimal
         .def_readonly("minimal", &CliOptions::minimal)
         // Expose the public member parallel

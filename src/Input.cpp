@@ -14,7 +14,7 @@ void input(py::module &m)
     // Create Input class
     py::class_<Input>(m, "Input")
         // Initialization of the Input object
-        .def(py::init<AnalysisType,int,bool,bool>())
+        .def(py::init<AnalysisType,int,bool>())
         // Expose the netlist object
         .def_readwrite("netlist", &Input::netlist)
         // Expose the parameters object

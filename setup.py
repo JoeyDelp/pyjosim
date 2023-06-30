@@ -119,7 +119,7 @@ class CMakeBuild(build_ext):
 setup(
     # Meta data
     name="pyjosim",
-    version="2.6",
+    version="2.6.1",
     author="Johannes Delport",
     author_email="joeydelp@gmail.com",
     description="Python bindings for JoSIM",

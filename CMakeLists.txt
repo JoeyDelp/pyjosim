@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 project(pyjosim
-        VERSION 2.6
+        VERSION 2.6.1
                 DESCRIPTION
                 "Python bindings for JoSIM"
                 HOMEPAGE_URL

@@ -23,6 +23,9 @@ JoSIM python interface
 ```
 
 ## Changelog
+### v2.6.1 - 30/06/2023
+- Updated to support JoSIM v2.6.6 with seperated KLU and SLU
+
 ### v2.6 - 27/01/2022
 - Updated readme documentation
 - Updated pybind11 interface
