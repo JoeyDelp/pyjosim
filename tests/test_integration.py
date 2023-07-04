@@ -1,10 +1,11 @@
 from pyjosim import CliOptions, Input, Matrix, Simulation, Output
+import matplotlib.pyplot as plt
 
 
 def josim_cli(args):
     cli = CliOptions(args)
-    josim_input = Input(cli.analysis_type, cli.input_type, cli.verbose)
-    josim_input.parse_file(cli.cir_file_name)
+    josim_input = Input(cli.analysis_type, cli.verbose, cli.minimal)
+    josim_input.parse_input(cli.cir_file_name)
     parameters = josim_input.parameters
 
     if len(parameters) > 0:
@@ -24,5 +25,12 @@ def josim_cli(args):
 
     return output.traces
 
-def test_jtl_basic():
-    josim_cli(["./tests/ex_jtl_basic.cir"])
+if __name__ == "__main__":
+    result = josim_cli(["./tests/ex_jtl_basic.cir"])
+    plt.xlabel(result[0].name)
+    plt.ylabel(result[1].name)
+    plt.title('ex_jtl_basic.cir')
+    plt.plot(result[0].data, result[1].data)
+    plt.show()
+
+
