@@ -40,7 +40,7 @@ void input(py::module &m)
         })
         // Expose the identify_simulation function from Transient class
         .def("identify_simulation", [](Input &self) {
-            Transient::identify_simulation(self.controls, self.transSim);
+            Transient::identify_simulation(self.controls, self.transSim, self.parameters);
         })
         // Create a clear_all_plots function for use internally
         .def("clear_all_plots", [](Input &input) {

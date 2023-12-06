@@ -23,6 +23,11 @@ JoSIM python interface
 ```
 
 ## Changelog
+
+### v2.6.2 - 06/12/2023
+
+- Updated to support JoSIM v2.6.7 with parameterised `.tran` statements
+
 ### v2.6.1 - 30/06/2023
 - Updated to support JoSIM v2.6.6 with seperated KLU and SLU
 
